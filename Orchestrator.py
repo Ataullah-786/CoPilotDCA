@@ -19,7 +19,7 @@ SCRIPTS = [
     },
     {
         "keywords": ["IMPORT", "TENANT"],
-        "script": "C:\\CopilotDCA\\Repo\\IMPORT\\Import_Tenant.ps1"
+        "script": "C:\\CopilotDCA\\Repo\\IMPORT\\Import_Lease.ps1"
     },
 
     #=================================
