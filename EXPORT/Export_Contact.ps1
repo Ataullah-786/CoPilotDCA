@@ -1,3 +1,18 @@
+<#
+.SYNOPSIS
+    Export pipeline for contact/reservation data (MayInstitute).
+
+.DESCRIPTION
+    Queries SQL Server for reservation data, exports to CSV, compresses to ZIP,
+    uploads via SFTP to the Angus Anywhere portal, and archives processed files.
+    Uses the integration_toolset module for SFTP and server utilities.
+
+.NOTES
+    Server:     Determined by Get-DbServer (integration_toolset module)
+    Database:   v3Equity
+    SFTP Dest:  sftp1.angusanywhere.com:/TheMayInstitute/files/DataExtracts
+#>
+
 #always reload module
 if (-not (Get-Module -name integration_toolset)) {
     write-host "integration_toolset does not exists. Load the module"

@@ -1,3 +1,21 @@
+<#
+.SYNOPSIS
+    Automated data import pipeline for commercial unit area data (JBG Smith).
+
+.DESCRIPTION
+    Reads a client-supplied CSV file (CommUnits*.csv), sanitizes embedded commas
+    in quoted fields, and inserts rows into the SQL Server staging table
+    [dbo].[tmpArea_JBGSmith] in the v3_common database. Includes comprehensive
+    error handling with dual-logging (technical + client-friendly), failure email
+    notifications, and file archiving on success.
+
+.NOTES
+    Server:   MRIPF3DNGQF (Windows Authentication)
+    Database: v3_common
+    Table:    tmpArea_JBGSmith
+    See also: DOCS/Import_Area_TechnicalSpec.md
+#>
+
 # Define paths for log file and email SQL script
 $logFilePath = "C:\CopilotDCA\Repo\IMPORT\log.log"
 $clientLogFilePath = "C:\CopilotDCA\Repo\IMPORT\Client_log.txt"
@@ -11,17 +29,26 @@ $ArchiveFilePath = 'C:\CopilotDCA\Repo\IMPORT\Archive\'
 # $FailedFilePath = 'C:\CopilotDCA\Repo\IMPORT\FAILED\'
 
 function Clean_CsvLine {
+    <#
+    .SYNOPSIS
+        Removes commas embedded within quoted CSV fields to allow safe splitting.
+    .DESCRIPTION
+        Splits the line on double-quote boundaries. Odd-indexed segments are the
+        quoted field contents — commas within those are stripped. The cleaned line
+        is then reassembled without quotes, producing a plain comma-delimited string.
+    #>
     param (
         [string]$line
     )
+    # Split on quotes: even indexes = unquoted segments, odd indexes = quoted content
     $parts = $line -split '"'
 
     for ($i = 1; $i -lt $parts.Count; $i += 2) {
-        # Only process quoted content (odd indexes)
+        # Strip commas inside quoted fields so they don't break CSV column splitting
         $parts[$i] = $parts[$i] -replace ',', ''
 
     }
- # Rebuild the line: even parts are between quotes, odd parts are quoted
+ # Rebuild the line: concatenate all parts (commas already removed from quoted segments)
     $cleanLine = ''
     for ($j = 0; $j -lt $parts.Count; $j++) {
         if ($j % 2 -eq 0) {
@@ -146,6 +173,14 @@ EXEC msdb.dbo.sp_send_dbmail
 
 
 function Write-ClientLog { #INCLUDE REFERENCE AFTER Send-FailureEmail || #$CHANGES
+    <#
+    .SYNOPSIS
+        Translates internal error contexts into client-friendly log messages.
+    .DESCRIPTION
+        Uses wildcard matching to map technical error strings to plain-English
+        messages suitable for client communication. Appends the translated
+        message with a timestamp to the client log file.
+    #>
     param (
         [string]$errorContext,
         [string]$clientLogPath = $clientLogFilePath
